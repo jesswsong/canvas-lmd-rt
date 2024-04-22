@@ -14,6 +14,8 @@ from diffusers.models import AutoencoderKL
 
 color_loss = F.mse_loss
 load_path="stabilityai/stable-diffusion-xl-base-1.0"
+variant = "fp16" if "stable-diffusion-xl" in load_path else None
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 vae = AutoencoderKL.from_pretrained(load_path, subfolder="vae", torch_dtype=torch.float16, use_safetensors=True, variant=variant).to(device)
 
