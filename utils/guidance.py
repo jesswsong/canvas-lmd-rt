@@ -6,6 +6,8 @@ import warnings
 
 import utils
 
+
+
 # A list mapping: prompt index to str (prompt in a list of token str)
 def get_token_map(tokenizer, prompt, verbose=False, padding="do_not_pad"):
     fg_prompt_tokens = tokenizer([prompt], padding=padding, max_length=77, return_tensors="np")
@@ -88,7 +90,84 @@ def get_phrase_indices(tokenizer, prompt, phrases, verbose=False, words=None, in
 
     return object_positions
 
-def add_ca_loss_per_attn_map_to_loss(loss, attn_map, object_number, bboxes, object_positions, use_ratio_based_loss=True, fg_top_p=0.2, bg_top_p=0.2, fg_weight=1.0, bg_weight=1.0, verbose=False):
+# def add_ca_loss_per_attn_map_to_loss(loss, attn_map, object_number, bboxes, object_positions, use_ratio_based_loss=True, fg_top_p=0.2, bg_top_p=0.2, fg_weight=1.0, bg_weight=1.0, verbose=False):
+#     """
+#     fg_top_p, bg_top_p, fg_weight, and bg_weight are only used with max-based loss
+#     """
+    
+#     # Uncomment to debug:
+#     # print(fg_top_p, bg_top_p, fg_weight, bg_weight)
+    
+#     # b is the number of heads, not batch
+#     b, i, j = attn_map.shape
+#     H = W = int(math.sqrt(i))
+#     for obj_idx in range(object_number):
+#         obj_loss = 0
+#         mask = torch.zeros(size=(H, W), device="cuda")
+#         obj_boxes = bboxes[obj_idx]
+
+#         # We support two level (one box per phrase) and three level (multiple boxes per phrase)
+#         if not isinstance(obj_boxes[0], Iterable):
+#             obj_boxes = [obj_boxes]
+
+#         for obj_box in obj_boxes:
+#             # x_min, y_min, x_max, y_max = int(obj_box[0] * W), int(obj_box[1] * H), int(obj_box[2] * W), int(obj_box[3] * H)
+#             x_min, y_min, x_max, y_max = utils.scale_proportion(obj_box, H=H, W=W)
+#             mask[y_min: y_max, x_min: x_max] = 1
+
+#         for obj_position in object_positions[obj_idx]:
+#             # Could potentially optimize to compute this for loop in batch.
+#             # Could crop the ref cross attention before saving to save memory.
+            
+#             ca_map_obj = attn_map[:, :, obj_position].reshape(b, H, W)
+
+#             if use_ratio_based_loss:
+#                 warnings.warn("Using ratio-based loss, which is deprecated. Max-based loss is recommended. The scale may be different.")
+#                 # Original loss function (ratio-based loss function)
+                
+#                 # Enforces the attention to be within the mask only. Does not enforce within-mask distribution.
+#                 activation_value = (ca_map_obj * mask).reshape(b, -1).sum(dim=-1)/ca_map_obj.reshape(b, -1).sum(dim=-1)
+#                 obj_loss += torch.mean((1 - activation_value) ** 2)
+#                 # if verbose:
+#                 #     print(f"enforce attn to be within the mask loss: {torch.mean((1 - activation_value) ** 2).item():.2f}")
+#             else:
+#                 # Max-based loss function
+                
+#                 # shape: (b, H * W)
+#                 ca_map_obj = attn_map[:, :, obj_position] # .reshape(b, H, W)
+#                 k_fg = (mask.sum() * fg_top_p).long().clamp_(min=1)
+#                 k_bg = ((1 - mask).sum() * bg_top_p).long().clamp_(min=1)
+                
+#                 mask_1d = mask.view(1, -1)
+                
+#                 # Take the topk over spatial dimension, and then take the sum over heads dim
+#                 # The mean is over k_fg and k_bg dimension, so we don't need to sum and divide on our own.
+#                 obj_loss += (1 - (ca_map_obj * mask_1d).topk(k=k_fg).values.mean(dim=1)).sum(dim=0) * fg_weight
+#                 obj_loss += ((ca_map_obj * (1 - mask_1d)).topk(k=k_bg).values.mean(dim=1)).sum(dim=0) * bg_weight    
+
+#         loss += obj_loss / len(object_positions[obj_idx])
+        
+#     return loss
+
+# add_ca_loss_per_attn_map_to_loss(loss, attn_map, object_number, bboxes, object_positions, verbose=verbose, **kwargs)  
+
+from diffusers import AutoencoderKL
+vae = AutoencoderKL.from_pretrained(key, subfolder="vae", revision=revision, torch_dtype=dtype).to(torch_device)
+    
+@torch.no_grad()
+def decode(vae, latents):
+    # scale and decode the image latents with vae
+    scaled_latents = 1 / 0.18215 * latents
+    with torch.no_grad():
+        image = vae.decode(scaled_latents).sample
+        
+    image = (image / 2 + 0.5).clamp(0, 1)
+    image = image.detach().cpu().permute(0, 2, 3, 1).numpy()
+    images = (image * 255).round().astype("uint8")
+    
+    return images
+
+def add_ca_loss_per_attn_map_to_loss(loss, attn_map, object_number, bboxes, object_positions, decode_func, use_ratio_based_loss=True, fg_top_p=0.2, bg_top_p=0.2, fg_weight=1.0, bg_weight=1.0, verbose=False):
     """
     fg_top_p, bg_top_p, fg_weight, and bg_weight are only used with max-based loss
     """
@@ -99,6 +178,8 @@ def add_ca_loss_per_attn_map_to_loss(loss, attn_map, object_number, bboxes, obje
     # b is the number of heads, not batch
     b, i, j = attn_map.shape
     H = W = int(math.sqrt(i))
+    
+    # For each object
     for obj_idx in range(object_number):
         obj_loss = 0
         mask = torch.zeros(size=(H, W), device="cuda")
@@ -112,7 +193,8 @@ def add_ca_loss_per_attn_map_to_loss(loss, attn_map, object_number, bboxes, obje
             # x_min, y_min, x_max, y_max = int(obj_box[0] * W), int(obj_box[1] * H), int(obj_box[2] * W), int(obj_box[3] * H)
             x_min, y_min, x_max, y_max = utils.scale_proportion(obj_box, H=H, W=W)
             mask[y_min: y_max, x_min: x_max] = 1
-
+        
+        rgb_val = (torch.FloatTensor((255, 165, 0))[None, :, None, None]/255).cuda() ##TODO: Color code
         for obj_position in object_positions[obj_idx]:
             # Could potentially optimize to compute this for loop in batch.
             # Could crop the ref cross attention before saving to save memory.
@@ -126,6 +208,13 @@ def add_ca_loss_per_attn_map_to_loss(loss, attn_map, object_number, bboxes, obje
                 # Enforces the attention to be within the mask only. Does not enforce within-mask distribution.
                 activation_value = (ca_map_obj * mask).reshape(b, -1).sum(dim=-1)/ca_map_obj.reshape(b, -1).sum(dim=-1)
                 obj_loss += torch.mean((1 - activation_value) ** 2)
+                
+                # we are decoding the scaled latent back into image space. which variable is the latent, ca_map_obj or *mask?
+                img = decode_func(ca_map_obj.to(dtype=torch.float32)).sample
+                avg_rgb = (img*mask).sum(-1).sum(-1)/ca_map_obj.sum() ## what should be the correct dimension in rich text??
+                # avg_rgb = (ca_map_obj*mask).sum(-1).sum(-1)/ca_map_obj.sum() ## what should be the correct dimension in rich text??
+                obj_loss += color_loss(avg_rgb, rgb_val[:, :, 0, 0])*100
+
                 # if verbose:
                 #     print(f"enforce attn to be within the mask loss: {torch.mean((1 - activation_value) ** 2).item():.2f}")
             else:
@@ -141,7 +230,15 @@ def add_ca_loss_per_attn_map_to_loss(loss, attn_map, object_number, bboxes, obje
                 # Take the topk over spatial dimension, and then take the sum over heads dim
                 # The mean is over k_fg and k_bg dimension, so we don't need to sum and divide on our own.
                 obj_loss += (1 - (ca_map_obj * mask_1d).topk(k=k_fg).values.mean(dim=1)).sum(dim=0) * fg_weight
-                obj_loss += ((ca_map_obj * (1 - mask_1d)).topk(k=k_bg).values.mean(dim=1)).sum(dim=0) * bg_weight    
+                obj_loss += ((ca_map_obj * (1 - mask_1d)).topk(k=k_bg).values.mean(dim=1)).sum(dim=0) * bg_weight  
+
+                # we are decoding the scaled latent back into image space. which variable is the latent, ca_map_obj or *mask?
+                img = decode_func(ca_map_obj.to(dtype=torch.float32)).sample
+                avg_rgb = (img*mask).sum(-1).sum(-1)/ca_map_obj.sum() ## what should be the correct dimension in rich text??
+                # avg_rgb = (ca_map_obj*mask).sum(-1).sum(-1)/ca_map_obj.sum() ## what should be the correct dimension in rich text??
+                obj_loss += color_loss(avg_rgb, rgb_val[:, :, 0, 0])*100
+                
+  
 
         loss += obj_loss / len(object_positions[obj_idx])
         
@@ -241,7 +338,7 @@ def add_ref_ca_loss_per_attn_map_to_lossv2(loss, saved_attn, object_number, bbox
         
     return loss
 
-def compute_ca_lossv3(saved_attn, bboxes, object_positions, guidance_attn_keys, ref_ca_saved_attns=None, ref_ca_last_token_only=True, ref_ca_word_token_only=False, word_token_indices=None, index=None, ref_ca_loss_weight=1.0, verbose=False, **kwargs):
+def compute_ca_lossv3(saved_attn, bboxes, object_positions, guidance_attn_keys, decode_func, ref_ca_saved_attns=None, ref_ca_last_token_only=True, ref_ca_word_token_only=False, word_token_indices=None, index=None, ref_ca_loss_weight=1.0, verbose=False, **kwargs):
     """
     The `saved_attn` is supposed to be passed to `save_attn_to_dict` in `cross_attention_kwargs` prior to computing ths loss.
     `AttnProcessor` will put attention maps into the `save_attn_to_dict`.
@@ -262,7 +359,7 @@ def compute_ca_lossv3(saved_attn, bboxes, object_positions, guidance_attn_keys, 
             attn_map_integrated = attn_map_integrated.cuda()
         # Example dimension: [20, 64, 77]
         attn_map = attn_map_integrated.squeeze(dim=0)
-        loss = add_ca_loss_per_attn_map_to_loss(loss, attn_map, object_number, bboxes, object_positions, verbose=verbose, **kwargs)    
+        loss = add_ca_loss_per_attn_map_to_loss(loss, attn_map, object_number, bboxes, object_positions, decode_func, verbose=verbose, **kwargs)    
 
     num_attn = len(guidance_attn_keys)
 

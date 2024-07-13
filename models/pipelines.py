@@ -45,7 +45,10 @@ def latent_backward_guidance(scheduler, unet, cond_embeddings, index, bboxes, ob
 
             # TODO: could return the attention maps for the required blocks only and not necessarily the final output
             # update latents with guidance
-            loss = guidance.compute_ca_lossv3(saved_attn=saved_attn, bboxes=bboxes, object_positions=object_positions, guidance_attn_keys=guidance_attn_keys, ref_ca_saved_attns=ref_ca_saved_attns, index=index, verbose=verbose, **kwargs) * loss_scale
+            
+            # CHANGE MADE: added decode function
+            # compute_ca_lossv3(saved_attn, bboxes, object_positions, guidance_attn_keys, decode_func,
+            loss = guidance.compute_ca_lossv3(saved_attn=saved_attn, bboxes=bboxes, object_positions=object_positions, guidance_attn_keys=guidance_attn_keys, decode_func=decode, ref_ca_saved_attns=ref_ca_saved_attns, index=index, verbose=verbose, **kwargs) * loss_scale
 
             if torch.isnan(loss):
                 print("**Loss is NaN**")

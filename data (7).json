@@ -1,0 +1,86 @@
+{
+    "rectangles": [
+        {
+            "label": "one cup",
+            "startX": 30,
+            "startY": 331,
+            "endX": 117,
+            "endY": 424,
+            "color": "#FF2BDF"
+        },
+        {
+            "label": "one cup",
+            "startX": 123,
+            "startY": 289,
+            "endX": 153,
+            "endY": 437,
+            "color": "#FF2BDF"
+        },
+        {
+            "label": "one cup",
+            "startX": 173,
+            "startY": 322,
+            "endX": 243,
+            "endY": 406,
+            "color": "#FF2BDF"
+        },
+        {
+            "label": "one cup",
+            "startX": 270,
+            "startY": 312,
+            "endX": 395,
+            "endY": 425,
+            "color": "#FF2BDF"
+        },
+        {
+            "label": "one cup",
+            "startX": 425,
+            "startY": 331,
+            "endX": 482,
+            "endY": 419,
+            "color": "#FF2BDF"
+        },
+        {
+            "label": "one cup",
+            "startX": 353,
+            "startY": 139,
+            "endX": 450,
+            "endY": 248,
+            "color": "#FF2BDF"
+        },
+        {
+            "label": "one cup",
+            "startX": 207,
+            "startY": 174,
+            "endX": 320,
+            "endY": 286,
+            "color": "#FF2BDF"
+        },
+        {
+            "label": "one cup",
+            "startX": 80,
+            "startY": 176,
+            "endX": 163,
+            "endY": 251,
+            "color": "#FF2BDF"
+        },
+        {
+            "label": "one cup",
+            "startX": 28,
+            "startY": 58,
+            "endX": 146,
+            "endY": 121,
+            "color": "#FF2BDF"
+        },
+        {
+            "label": "one cup",
+            "startX": 193,
+            "startY": 53,
+            "endX": 294,
+            "endY": 159,
+            "color": "#FF2BDF"
+        }
+    ],
+    "background": "on a table",
+    "negative": ""
+}

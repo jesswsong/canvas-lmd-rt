@@ -4,13 +4,13 @@ from matplotlib.collections import PatchCollection
 import matplotlib.pyplot as plt
 import numpy as np
 import warnings
-import inflect
-import gradio as gr
+# import inflect
+# import gradio as gr
 import json
 
-p = inflect.engine()
+# p = inflect.engine()
 # user_error = ValueError
-user_error = gr.Error
+# user_error = gr.Error
 
 img_dir = "imgs"
 objects_text = "Objects: "
