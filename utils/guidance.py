@@ -151,21 +151,9 @@ def get_phrase_indices(tokenizer, prompt, phrases, verbose=False, words=None, in
 
 # add_ca_loss_per_attn_map_to_loss(loss, attn_map, object_number, bboxes, object_positions, verbose=verbose, **kwargs)  
 
-from diffusers import AutoencoderKL
-vae = AutoencoderKL.from_pretrained(key, subfolder="vae", revision=revision, torch_dtype=dtype).to(torch_device)
+# from diffusers import AutoencoderKL
+# vae = AutoencoderKL.from_pretrained(key, subfolder="vae", revision=revision, torch_dtype=dtype).to(torch_device)
     
-@torch.no_grad()
-def decode(vae, latents):
-    # scale and decode the image latents with vae
-    scaled_latents = 1 / 0.18215 * latents
-    with torch.no_grad():
-        image = vae.decode(scaled_latents).sample
-        
-    image = (image / 2 + 0.5).clamp(0, 1)
-    image = image.detach().cpu().permute(0, 2, 3, 1).numpy()
-    images = (image * 255).round().astype("uint8")
-    
-    return images
 
 def add_ca_loss_per_attn_map_to_loss(loss, attn_map, object_number, bboxes, object_positions, decode_func, use_ratio_based_loss=True, fg_top_p=0.2, bg_top_p=0.2, fg_weight=1.0, bg_weight=1.0, verbose=False):
     """
@@ -214,6 +202,8 @@ def add_ca_loss_per_attn_map_to_loss(loss, attn_map, object_number, bboxes, obje
                 avg_rgb = (img*mask).sum(-1).sum(-1)/ca_map_obj.sum() ## what should be the correct dimension in rich text??
                 # avg_rgb = (ca_map_obj*mask).sum(-1).sum(-1)/ca_map_obj.sum() ## what should be the correct dimension in rich text??
                 obj_loss += color_loss(avg_rgb, rgb_val[:, :, 0, 0])*100
+                
+                print("original-based loss gd successful")
 
                 # if verbose:
                 #     print(f"enforce attn to be within the mask loss: {torch.mean((1 - activation_value) ** 2).item():.2f}")
@@ -238,6 +228,7 @@ def add_ca_loss_per_attn_map_to_loss(loss, attn_map, object_number, bboxes, obje
                 # avg_rgb = (ca_map_obj*mask).sum(-1).sum(-1)/ca_map_obj.sum() ## what should be the correct dimension in rich text??
                 obj_loss += color_loss(avg_rgb, rgb_val[:, :, 0, 0])*100
                 
+                print("max-based loss gd successful")
   
 
         loss += obj_loss / len(object_positions[obj_idx])

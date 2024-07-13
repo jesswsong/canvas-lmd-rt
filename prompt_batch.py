@@ -16,7 +16,8 @@ else:
     print("Not scaling the bounding box to fit the scene")
 
 if __name__ == "__main__":
-    json_path = '/Users/js/School/dsc180/canvas-lmd-rt/data.json'
+
+    json_path = os.path.join(os.getcwd(), 'data.json')#'/home/jwsong/private/canvas-lmd-rt/data.json'
     parser = argparse.ArgumentParser() 
     parser.add_argument("--prompt-type", choices=prompt_types, default="demo")
     parser.add_argument("--model", choices=model_names, required=True)
