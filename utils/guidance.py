@@ -6,7 +6,7 @@ import warnings
 
 import utils
 
-
+color_loss = F.mse_loss
 
 # A list mapping: prompt index to str (prompt in a list of token str)
 def get_token_map(tokenizer, prompt, verbose=False, padding="do_not_pad"):
@@ -151,23 +151,9 @@ def get_phrase_indices(tokenizer, prompt, phrases, verbose=False, words=None, in
 
 # add_ca_loss_per_attn_map_to_loss(loss, attn_map, object_number, bboxes, object_positions, verbose=verbose, **kwargs)  
 
-from diffusers import AutoencoderKL
-vae = AutoencoderKL.from_pretrained(key, subfolder="vae", revision=revision, torch_dtype=dtype).to(torch_device)
-    
-@torch.no_grad()
-def decode(vae, latents):
-    # scale and decode the image latents with vae
-    scaled_latents = 1 / 0.18215 * latents
-    with torch.no_grad():
-        image = vae.decode(scaled_latents).sample
-        
-    image = (image / 2 + 0.5).clamp(0, 1)
-    image = image.detach().cpu().permute(0, 2, 3, 1).numpy()
-    images = (image * 255).round().astype("uint8")
-    
-    return images
 
-def add_ca_loss_per_attn_map_to_loss(loss, attn_map, object_number, bboxes, object_positions, decode_func, use_ratio_based_loss=True, fg_top_p=0.2, bg_top_p=0.2, fg_weight=1.0, bg_weight=1.0, verbose=False):
+
+def add_ca_loss_per_attn_map_to_loss(loss, attn_map, object_number, bboxes, object_positions, decode_func, vae, use_ratio_based_loss=True, fg_top_p=0.2, bg_top_p=0.2, fg_weight=1.0, bg_weight=1.0, verbose=False):
     """
     fg_top_p, bg_top_p, fg_weight, and bg_weight are only used with max-based loss
     """
@@ -210,7 +196,7 @@ def add_ca_loss_per_attn_map_to_loss(loss, attn_map, object_number, bboxes, obje
                 obj_loss += torch.mean((1 - activation_value) ** 2)
                 
                 # we are decoding the scaled latent back into image space. which variable is the latent, ca_map_obj or *mask?
-                img = decode_func(ca_map_obj.to(dtype=torch.float32)).sample
+                img = decode_func(vae, ca_map_obj.to(dtype=torch.float32)).sample
                 avg_rgb = (img*mask).sum(-1).sum(-1)/ca_map_obj.sum() ## what should be the correct dimension in rich text??
                 # avg_rgb = (ca_map_obj*mask).sum(-1).sum(-1)/ca_map_obj.sum() ## what should be the correct dimension in rich text??
                 obj_loss += color_loss(avg_rgb, rgb_val[:, :, 0, 0])*100
@@ -233,7 +219,7 @@ def add_ca_loss_per_attn_map_to_loss(loss, attn_map, object_number, bboxes, obje
                 obj_loss += ((ca_map_obj * (1 - mask_1d)).topk(k=k_bg).values.mean(dim=1)).sum(dim=0) * bg_weight  
 
                 # we are decoding the scaled latent back into image space. which variable is the latent, ca_map_obj or *mask?
-                img = decode_func(ca_map_obj.to(dtype=torch.float32)).sample
+                img = decode_func(vae, ca_map_obj.to(dtype=torch.float32)).sample
                 avg_rgb = (img*mask).sum(-1).sum(-1)/ca_map_obj.sum() ## what should be the correct dimension in rich text??
                 # avg_rgb = (ca_map_obj*mask).sum(-1).sum(-1)/ca_map_obj.sum() ## what should be the correct dimension in rich text??
                 obj_loss += color_loss(avg_rgb, rgb_val[:, :, 0, 0])*100
@@ -338,7 +324,7 @@ def add_ref_ca_loss_per_attn_map_to_lossv2(loss, saved_attn, object_number, bbox
         
     return loss
 
-def compute_ca_lossv3(saved_attn, bboxes, object_positions, guidance_attn_keys, decode_func, ref_ca_saved_attns=None, ref_ca_last_token_only=True, ref_ca_word_token_only=False, word_token_indices=None, index=None, ref_ca_loss_weight=1.0, verbose=False, **kwargs):
+def compute_ca_lossv3(saved_attn, bboxes, object_positions, guidance_attn_keys, decode_func, vae, ref_ca_saved_attns=None, ref_ca_last_token_only=True, ref_ca_word_token_only=False, word_token_indices=None, index=None, ref_ca_loss_weight=1.0, verbose=False, **kwargs):
     """
     The `saved_attn` is supposed to be passed to `save_attn_to_dict` in `cross_attention_kwargs` prior to computing ths loss.
     `AttnProcessor` will put attention maps into the `save_attn_to_dict`.
@@ -359,7 +345,7 @@ def compute_ca_lossv3(saved_attn, bboxes, object_positions, guidance_attn_keys, 
             attn_map_integrated = attn_map_integrated.cuda()
         # Example dimension: [20, 64, 77]
         attn_map = attn_map_integrated.squeeze(dim=0)
-        loss = add_ca_loss_per_attn_map_to_loss(loss, attn_map, object_number, bboxes, object_positions, decode_func, verbose=verbose, **kwargs)    
+        loss = add_ca_loss_per_attn_map_to_loss(loss, attn_map, object_number, bboxes, object_positions, decode_func, vae, verbose=verbose, **kwargs)    
 
     num_attn = len(guidance_attn_keys)
 
