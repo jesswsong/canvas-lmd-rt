@@ -200,6 +200,8 @@ def add_ca_loss_per_attn_map_to_loss(loss, attn_map, object_number, bboxes, obje
                 avg_rgb = (img*mask).sum(-1).sum(-1)/ca_map_obj.sum() ## what should be the correct dimension in rich text??
                 # avg_rgb = (ca_map_obj*mask).sum(-1).sum(-1)/ca_map_obj.sum() ## what should be the correct dimension in rich text??
                 obj_loss += color_loss(avg_rgb, rgb_val[:, :, 0, 0])*100
+                
+                print("original-based loss gd successful")
 
                 # if verbose:
                 #     print(f"enforce attn to be within the mask loss: {torch.mean((1 - activation_value) ** 2).item():.2f}")
@@ -224,6 +226,7 @@ def add_ca_loss_per_attn_map_to_loss(loss, attn_map, object_number, bboxes, obje
                 # avg_rgb = (ca_map_obj*mask).sum(-1).sum(-1)/ca_map_obj.sum() ## what should be the correct dimension in rich text??
                 obj_loss += color_loss(avg_rgb, rgb_val[:, :, 0, 0])*100
                 
+                print("max-based loss gd successful")
   
 
         loss += obj_loss / len(object_positions[obj_idx])

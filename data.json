@@ -1,0 +1,14 @@
+{
+    "rectangles": [
+        {
+            "label": "deer",
+            "startX": 100,
+            "startY": 100,
+            "endX": 100,
+            "endY": 100,
+            "color": "#FF2BDF"
+        }
+    ],
+    "background": "grass",
+    "negative": ""
+}
