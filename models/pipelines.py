@@ -13,8 +13,14 @@ import warnings
 # Note that the first up block is `UpBlock2D` rather than `CrossAttnUpBlock2D` and does not have attention. The last index is always 0 in our case since we have one `BasicTransformerBlock` in each `Transformer2DModel`.
 DEFAULT_GUIDANCE_ATTN_KEYS = [("mid", 0, 0, 0), ("up", 1, 0, 0), ("up", 1, 1, 0), ("up", 1, 2, 0)]
 
+<<<<<<< HEAD
 def latent_backward_guidance(model_dict, scheduler, unet, cond_embeddings, index, bboxes, object_positions, t, latents, loss, loss_scale = 30, loss_threshold = 0.2, max_iter = 5, max_index_step = 10, cross_attention_kwargs=None, ref_ca_saved_attns=None, guidance_attn_keys=None, verbose=False, clear_cache=False, **kwargs):
 
+=======
+def latent_backward_guidance(scheduler, unet, cond_embeddings, index, bboxes, object_positions, t, latents, loss, loss_scale = 30, loss_threshold = 0.2, max_iter = 5, max_index_step = 10, cross_attention_kwargs=None, ref_ca_saved_attns=None, guidance_attn_keys=None, verbose=False, clear_cache=False, **kwargs):
+
+    print("here at latent backwards")
+>>>>>>> 8413045 (use VAE to decode)
     iteration = 0
     
     if index < max_index_step:
@@ -38,6 +44,14 @@ def latent_backward_guidance(model_dict, scheduler, unet, cond_embeddings, index
                 full_cross_attention_kwargs.update(cross_attention_kwargs)
             
             latents.requires_grad_(True)
+<<<<<<< HEAD
+=======
+            
+            
+            
+            
+            # this part
+>>>>>>> 8413045 (use VAE to decode)
             latent_model_input = latents
             latent_model_input = scheduler.scale_model_input(latent_model_input, t)
             
@@ -45,19 +59,33 @@ def latent_backward_guidance(model_dict, scheduler, unet, cond_embeddings, index
 
             # TODO: could return the attention maps for the required blocks only and not necessarily the final output
             # update latents with guidance
+<<<<<<< HEAD
             
             # CHANGE MADE: added decode function
             # compute_ca_lossv3(saved_attn, bboxes, object_positions, guidance_attn_keys, decode_func,
             loss = guidance.compute_ca_lossv3(saved_attn=saved_attn, bboxes=bboxes, object_positions=object_positions, guidance_attn_keys=guidance_attn_keys, decode_func=decode, vae=model_dict.vae, ref_ca_saved_attns=ref_ca_saved_attns, index=index, verbose=verbose, **kwargs) * loss_scale
+=======
+            loss = guidance.compute_ca_lossv3(saved_attn=saved_attn, bboxes=bboxes, object_positions=object_positions, guidance_attn_keys=guidance_attn_keys, ref_ca_saved_attns=ref_ca_saved_attns, index=index, verbose=verbose, **kwargs) * loss_scale
+>>>>>>> 8413045 (use VAE to decode)
 
             if torch.isnan(loss):
                 print("**Loss is NaN**")
 
             del full_cross_attention_kwargs, saved_attn
             # call gc.collect() here may release some memory
+<<<<<<< HEAD
 
             grad_cond = torch.autograd.grad(loss.requires_grad_(True), [latents])[0]
 
+=======
+            # grad_cond = latents.grad * text_format_dict['color_guidance_weight'] * text_format_dict['color_obj_atten_all']).detach().clone().to(dtype=prompt_embeds.dtype)
+            grad_cond = torch.autograd.grad(loss.requires_grad_(True), [latents])[0]
+
+
+            # this part 
+            
+            
+>>>>>>> 8413045 (use VAE to decode)
             latents.requires_grad_(False)
             
             if hasattr(scheduler, 'sigmas'):
@@ -137,6 +165,11 @@ def generate_semantic_guidance(model_dict, latents, input_embeddings, num_infere
     object_positions: object indices in text tokens
     return_cross_attn: should be deprecated. Use `return_saved_cross_attn` and the new format.
     """
+<<<<<<< HEAD
+=======
+    
+    print("backward guidance")
+>>>>>>> 8413045 (use VAE to decode)
     vae, tokenizer, text_encoder, unet, scheduler, dtype = model_dict.vae, model_dict.tokenizer, model_dict.text_encoder, model_dict.unet, model_dict.scheduler, model_dict.dtype
     text_embeddings, uncond_embeddings, cond_embeddings = input_embeddings
     
@@ -191,7 +224,11 @@ def generate_semantic_guidance(model_dict, latents, input_embeddings, num_infere
                 latents, loss = boxdiff.latent_backward_guidance_boxdiff(scheduler, unet, cond_embeddings, index, bboxes, object_positions, t, latents, loss, cross_attention_kwargs=guidance_cross_attention_kwargs, **semantic_guidance_kwargs)
             else:
                 # If encountered None in `guidance_attn_keys`, please be sure to check whether `guidance_attn_keys` is added in `semantic_guidance_kwargs`. Default value has been removed.
+<<<<<<< HEAD
                 latents, loss = latent_backward_guidance(model_dict, scheduler, unet, cond_embeddings, index, bboxes, object_positions, t, latents, loss, cross_attention_kwargs=guidance_cross_attention_kwargs, **semantic_guidance_kwargs)
+=======
+                latents, loss = latent_backward_guidance(scheduler, unet, cond_embeddings, index, bboxes, object_positions, t, latents, loss, cross_attention_kwargs=guidance_cross_attention_kwargs, **semantic_guidance_kwargs)
+>>>>>>> 8413045 (use VAE to decode)
         
         # predict the noise residual
         with torch.no_grad():
@@ -233,6 +270,10 @@ def generate_semantic_guidance(model_dict, latents, input_embeddings, num_infere
         # Restore num_inference_steps to avoid confusion in the next generation if it is not dynamic
         scheduler.num_inference_steps = original_num_inference_steps
     
+<<<<<<< HEAD
+=======
+    # TODO: did decode here
+>>>>>>> 8413045 (use VAE to decode)
     images = decode(vae, latents)
     
     ret = [latents, images]

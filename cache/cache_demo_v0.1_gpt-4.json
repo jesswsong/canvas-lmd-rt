@@ -1,8 +1,16 @@
 {
+<<<<<<< HEAD
     "A whale on the ground": [
         "[('cat', [44, 271, 298, 452]), ('dog', [274, 61, 474, 362])]\nBackground prompt: playground\nNegative prompt: "
     ],
     "A deer on grass": [
         "[('deer', [100, 100, 100, 100])]\nBackground prompt: grass\nNegative prompt: "
+=======
+    "An dog on the left and a cat on the right": [
+        "[('golden apple', [199, 205, 132, 87])]\nBackground prompt: library\nNegative prompt: "
+    ],
+    "A golden apple in a library": [
+        "[('golden apple', [199, 205, 132, 87])]\nBackground prompt: library\nNegative prompt: "
+>>>>>>> 8413045 (use VAE to decode)
     ]
 }

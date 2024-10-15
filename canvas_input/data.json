@@ -1,0 +1,14 @@
+{
+    "rectangles": [
+        {
+            "label": "golden apple",
+            "startX": 199,
+            "startY": 205,
+            "endX": 331,
+            "endY": 292,
+            "color": "#FFA809"
+        }
+    ],
+    "background": "library",
+    "negative": ""
+}

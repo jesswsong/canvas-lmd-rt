@@ -3,10 +3,21 @@ import torch.nn.functional as F
 import math
 from collections.abc import Iterable
 import warnings
+<<<<<<< HEAD
 
 import utils
 
 color_loss = F.mse_loss
+=======
+import utils
+from diffusers.models import AutoencoderKL
+
+color_loss = F.mse_loss
+load_path="stabilityai/stable-diffusion-xl-base-1.0"
+
+vae = AutoencoderKL.from_pretrained(load_path, subfolder="vae", torch_dtype=torch.float16, use_safetensors=True, variant=variant).to(device)
+
+>>>>>>> 8413045 (use VAE to decode)
 
 # A list mapping: prompt index to str (prompt in a list of token str)
 def get_token_map(tokenizer, prompt, verbose=False, padding="do_not_pad"):
@@ -90,6 +101,7 @@ def get_phrase_indices(tokenizer, prompt, phrases, verbose=False, words=None, in
 
     return object_positions
 
+<<<<<<< HEAD
 # def add_ca_loss_per_attn_map_to_loss(loss, attn_map, object_number, bboxes, object_positions, use_ratio_based_loss=True, fg_top_p=0.2, bg_top_p=0.2, fg_weight=1.0, bg_weight=1.0, verbose=False):
 #     """
 #     fg_top_p, bg_top_p, fg_weight, and bg_weight are only used with max-based loss
@@ -154,6 +166,10 @@ def get_phrase_indices(tokenizer, prompt, phrases, verbose=False, words=None, in
 
 
 def add_ca_loss_per_attn_map_to_loss(loss, attn_map, object_number, bboxes, object_positions, decode_func, vae, use_ratio_based_loss=True, fg_top_p=0.2, bg_top_p=0.2, fg_weight=1.0, bg_weight=1.0, verbose=False):
+=======
+
+def add_ca_loss_per_attn_map_to_loss(imgs,loss, attn_map, object_number, bboxes, object_positions, use_ratio_based_loss=True, fg_top_p=0.2, bg_top_p=0.2, fg_weight=1.0, bg_weight=1.0, verbose=False):
+>>>>>>> 8413045 (use VAE to decode)
     """
     fg_top_p, bg_top_p, fg_weight, and bg_weight are only used with max-based loss
     """
@@ -180,7 +196,12 @@ def add_ca_loss_per_attn_map_to_loss(loss, attn_map, object_number, bboxes, obje
             x_min, y_min, x_max, y_max = utils.scale_proportion(obj_box, H=H, W=W)
             mask[y_min: y_max, x_min: x_max] = 1
         
+<<<<<<< HEAD
         rgb_val = (torch.FloatTensor((255, 165, 0))[None, :, None, None]/255).cuda() ##TODO: Color code
+=======
+        # rgb_val = (torch.FloatTensor((208, 0, 104))[None, :, None, None]/255).cuda() ##TODO
+        rgb_val = (torch.FloatTensor((0, 221,255))[None, :, None, None]/255).cuda() ##TODO
+>>>>>>> 8413045 (use VAE to decode)
         for obj_position in object_positions[obj_idx]:
             # Could potentially optimize to compute this for loop in batch.
             # Could crop the ref cross attention before saving to save memory.
@@ -194,6 +215,7 @@ def add_ca_loss_per_attn_map_to_loss(loss, attn_map, object_number, bboxes, obje
                 # Enforces the attention to be within the mask only. Does not enforce within-mask distribution.
                 activation_value = (ca_map_obj * mask).reshape(b, -1).sum(dim=-1)/ca_map_obj.reshape(b, -1).sum(dim=-1)
                 obj_loss += torch.mean((1 - activation_value) ** 2)
+<<<<<<< HEAD
                 
                 # we are decoding the scaled latent back into image space. which variable is the latent, ca_map_obj or *mask?
                 img = decode_func(vae, ca_map_obj.to(dtype=torch.float32)).sample
@@ -202,6 +224,15 @@ def add_ca_loss_per_attn_map_to_loss(loss, attn_map, object_number, bboxes, obje
                 obj_loss += color_loss(avg_rgb, rgb_val[:, :, 0, 0])*100
                 
                 print("original-based loss gd successful")
+=======
+                ##TODO
+                
+                # we are decoding the scaled latent back into image space. which variable is the latent, ca_map_obj or *mask?
+                img = vae.decode(ca_map_obj.to(dtype=torch.float32)).sample
+                avg_rgb = (img).sum(-1).sum(-1)/ca_map_obj.sum() ## what should be the correct dimension in rich text??
+                # avg_rgb = (ca_map_obj*mask).sum(-1).sum(-1)/ca_map_obj.sum() ## what should be the correct dimension in rich text??
+                obj_loss += color_loss(avg_rgb, rgb_val[:, :, 0, 0])*100
+>>>>>>> 8413045 (use VAE to decode)
 
                 # if verbose:
                 #     print(f"enforce attn to be within the mask loss: {torch.mean((1 - activation_value) ** 2).item():.2f}")
@@ -220,6 +251,7 @@ def add_ca_loss_per_attn_map_to_loss(loss, attn_map, object_number, bboxes, obje
                 obj_loss += (1 - (ca_map_obj * mask_1d).topk(k=k_fg).values.mean(dim=1)).sum(dim=0) * fg_weight
                 obj_loss += ((ca_map_obj * (1 - mask_1d)).topk(k=k_bg).values.mean(dim=1)).sum(dim=0) * bg_weight  
 
+<<<<<<< HEAD
                 # we are decoding the scaled latent back into image space. which variable is the latent, ca_map_obj or *mask?
                 img = decode_func(vae, ca_map_obj.to(dtype=torch.float32)).sample
                 avg_rgb = (img*mask).sum(-1).sum(-1)/ca_map_obj.sum() ## what should be the correct dimension in rich text??
@@ -227,6 +259,11 @@ def add_ca_loss_per_attn_map_to_loss(loss, attn_map, object_number, bboxes, obje
                 obj_loss += color_loss(avg_rgb, rgb_val[:, :, 0, 0])*100
                 
                 print("max-based loss gd successful")
+=======
+                 ##TODO
+                avg_rgb = (ca_map_obj*mask_1d).sum(-1).sum(-1)/ca_map_obj.sum() ## what should be the correct dimension in rich text??
+                obj_loss += torch.nn.functional.mse_loss(avg_rgb, rgb_val[:, :, 0, 0])*100
+>>>>>>> 8413045 (use VAE to decode)
   
 
         loss += obj_loss / len(object_positions[obj_idx])
@@ -327,7 +364,11 @@ def add_ref_ca_loss_per_attn_map_to_lossv2(loss, saved_attn, object_number, bbox
         
     return loss
 
+<<<<<<< HEAD
 def compute_ca_lossv3(saved_attn, bboxes, object_positions, guidance_attn_keys, decode_func, vae, ref_ca_saved_attns=None, ref_ca_last_token_only=True, ref_ca_word_token_only=False, word_token_indices=None, index=None, ref_ca_loss_weight=1.0, verbose=False, **kwargs):
+=======
+def compute_ca_lossv3(saved_attn, bboxes, object_positions, guidance_attn_keys, text_format_dict=None, ref_ca_saved_attns=None, ref_ca_last_token_only=True, ref_ca_word_token_only=False, word_token_indices=None, index=None, ref_ca_loss_weight=1.0, verbose=False, **kwargs):
+>>>>>>> 8413045 (use VAE to decode)
     """
     The `saved_attn` is supposed to be passed to `save_attn_to_dict` in `cross_attention_kwargs` prior to computing ths loss.
     `AttnProcessor` will put attention maps into the `save_attn_to_dict`.
@@ -348,7 +389,12 @@ def compute_ca_lossv3(saved_attn, bboxes, object_positions, guidance_attn_keys, 
             attn_map_integrated = attn_map_integrated.cuda()
         # Example dimension: [20, 64, 77]
         attn_map = attn_map_integrated.squeeze(dim=0)
+<<<<<<< HEAD
         loss = add_ca_loss_per_attn_map_to_loss(loss, attn_map, object_number, bboxes, object_positions, decode_func, vae, verbose=verbose, **kwargs)    
+=======
+        loss = add_ca_loss_per_attn_map_to_loss(loss, attn_map, object_number, bboxes, object_positions, verbose=verbose, **kwargs)    
+
+>>>>>>> 8413045 (use VAE to decode)
 
     num_attn = len(guidance_attn_keys)
 
@@ -369,4 +415,42 @@ def compute_ca_lossv3(saved_attn, bboxes, object_positions, guidance_attn_keys, 
         
         loss += ref_loss / (object_number * num_attn)
     
+<<<<<<< HEAD
+=======
+    """
+    latents (`torch.FloatTensor`, *optional*):
+        Pre-generated noisy latents, sampled from a Gaussian distribution, to be used as inputs for image
+        generation. Can be used to tweak the same generation with different prompts. If not provided, a latents
+        tensor will ge generated by sampling using the supplied random `generator`."""
+        
+    from diffusers.schedulers import EulerDiscreteScheduler
+    from diffusers.models import AutoencoderKL
+    load_path = "stabilityai/stable-diffusion-xl-base-1.0"
+
+    color_loss = torch.nn.functional.mse_loss
+    scheduler = EulerDiscreteScheduler.from_pretrained(load_path, subfolder="scheduler") #TODO: find load_path for lmd for stable diffusion
+    variant = "fp16" if "stable-diffusion-xl" in load_path else None
+    device = 'cuda'
+    
+    def predict_x0(x_t, eps_t, t):
+        alpha_t = scheduler.alphas_cumprod[t.cpu().long().item()]
+        return (x_t - eps_t * torch.sqrt(1-alpha_t)) / torch.sqrt(alpha_t)
+                                                    
+    vae = AutoencoderKL.from_pretrained(load_path, subfolder="vae", torch_dtype=torch.float16, use_safetensors=True, variant=variant).to(device)
+    if text_format_dict is not None:
+        latents_0 = predict_x0(latents, noise_pred, t).to(dtype=latents.dtype) #TODO: noise_pred follows denoising loop timestep t, how to incorporate
+        latents_inp = latents_0 / vae.config.scaling_factor
+        imgs = vae.decode(latents_inp.to(dtype=torch.float32)).sample
+        imgs = (imgs / 2 + 0.5).clamp(0, 1)
+    
+        loss_total = 0.
+        for attn_map, rgb_val in zip(text_format_dict['color_obj_atten'], text_format_dict['target_RGB']):
+            avg_rgb = (
+                imgs*attn_map[:, 0]).sum(2).sum(2)/attn_map[:, 0].sum()
+            loss = color_loss(
+                avg_rgb, rgb_val[:, :, 0, 0])*100
+            loss_total += loss
+        loss_total.backward()
+    
+>>>>>>> 8413045 (use VAE to decode)
     return loss

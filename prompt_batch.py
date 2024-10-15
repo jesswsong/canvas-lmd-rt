@@ -16,8 +16,6 @@ else:
     print("Not scaling the bounding box to fit the scene")
 
 if __name__ == "__main__":
-
-    json_path = os.path.join(os.getcwd(), 'data.json')#'/home/jwsong/private/canvas-lmd-rt/data.json'
     parser = argparse.ArgumentParser() 
     parser.add_argument("--prompt-type", choices=prompt_types, default="demo")
     parser.add_argument("--model", choices=model_names, required=True)
@@ -57,7 +55,7 @@ if __name__ == "__main__":
     prompt = get_prompts(args.prompt_type, model=model)[0]
     
     # Read canvas input
-    parsed_input = parse_input_from_canvas(json_path)#parse_input_with_negative(text=resp, no_input=args.auto_query)
+    parsed_input = parse_input_from_canvas('/mnt/hd1/jwsong/dsc180/canvas-lmd-rt/canvas_input/data.json')#parse_input_with_negative(text=resp, no_input=args.auto_query)
     # parsed_input = parse_input_with_negative(text=resp, no_input=args.auto_query)
     if parsed_input is None:
         raise ValueError("Invalid input")

@@ -1,3 +1,9 @@
+<<<<<<< HEAD
+=======
+
+
+
+>>>>>>> 8413045 (use VAE to decode)
 /* Basic styling; can be expanded as needed */
 body {
     display: flex;
@@ -6,7 +12,93 @@ body {
     padding: 20px;
 }
 
+<<<<<<< HEAD
 canvas {
     margin-bottom: 10px;
 }
 
+=======
+h1, h3{
+    font-family: "Raleway", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 700;
+    font-style: normal;
+}
+
+canvas {
+    margin-bottom: 10px;
+    border:2px solid #726f6f;
+    border-radius:25px;
+}
+
+label {
+    font-family: "Raleway", sans-serif;
+}
+
+.columns {
+    display: flex;
+    justify-content: center;
+    gap: 20px; /* Adjust the space between columns as needed */
+    padding-bottom: 40px;
+}
+
+.column {
+    display: flex;
+    flex-direction: column;
+    gap: 10px; /* Adjust the space between items in a column as needed */
+}
+
+input {
+    width: 100px; /* Uniform width for input boxes */
+    height: 20px;
+}
+
+.jscolor {
+    width: 120px; /* Shorten the color selection box */
+    padding: 5px; /* Adjust padding as needed for aesthetic */
+}
+
+button {
+    font-family: "Raleway", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 400;
+    font-style: italic;
+
+
+    border: none;
+    background-color: #008CBA;
+    color: white;
+    padding: 15px; /*32px;*/
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+}
+
+
+.raleway-font {
+  font-family: "Raleway", sans-serif;
+  font-optical-sizing: auto;
+}
+
+/* New style for code elements */
+code {
+    background-color: #f2f2f2; /* Light grey background */
+    padding: 10px; /* Padding around the text */
+    display: block; /* Make code elements block for better layout control */
+    width: 100%; /* Full width to align with other content */
+    text-align: left;
+    border-radius: 10px;
+}
+
+p {
+    font-family: "Raleway", sans-serif;
+    text-align: left;
+}
+
+body {
+    max-width: 800px; 
+    margin: 0 auto;
+    padding: 0 25px; 
+}
+>>>>>>> 8413045 (use VAE to decode)
