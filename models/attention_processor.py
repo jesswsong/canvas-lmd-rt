@@ -18,14 +18,11 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-<<<<<<< HEAD
 from diffusers.utils.torch_utils import maybe_allow_in_graph
 from diffusers.utils.deprecation_utils import deprecate
 from diffusers.utils import logging
 
-=======
 from diffusers.utils import deprecate, logging, maybe_allow_in_graph
->>>>>>> 8413045 (use VAE to decode)
 
 logger = logging.get_logger(__name__)  # pylint: disable=invalid-name
 
