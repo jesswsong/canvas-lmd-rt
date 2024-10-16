@@ -4,23 +4,13 @@ from matplotlib.collections import PatchCollection
 import matplotlib.pyplot as plt
 import numpy as np
 import warnings
-<<<<<<< HEAD
-# import inflect
-# import gradio as gr
-import json
-
-# p = inflect.engine()
-# user_error = ValueError
-# user_error = gr.Error
-=======
 import inflect
 import gradio as gr
 import json
 
 p = inflect.engine()
-# user_error = ValueError
+user_error = ValueError
 user_error = gr.Error
->>>>>>> 8413045 (use VAE to decode)
 
 img_dir = "imgs"
 objects_text = "Objects: "
@@ -160,7 +150,6 @@ def parse_input_from_canvas(fp, no_input=False):
 
     raw_gen_boxes = []
     for item in data['rectangles']:
-<<<<<<< HEAD
         raw_gen_boxes.append((item['label'], [item['startX'], item['startY'], item['endX'], item['endY']]))
        
     ### Process background prompt
@@ -189,14 +178,6 @@ def parse_input_from_canvas(fp, no_input=False):
 
     # bg_prompt = bg_prompt.strip()
     # neg_prompt = neg_prompt.strip()
-=======
-        raw_gen_boxes.append(
-            (item['label'], \
-             [item['startX'], \
-              item['startY'], \
-            item['endX']-item['startX'], \
-            item['endY']-item['startY']]))
->>>>>>> 8413045 (use VAE to decode)
     
     # LLM may return "None" to mean no negative prompt provided.
     if neg_prompt == "None":

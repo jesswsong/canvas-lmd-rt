@@ -7,10 +7,10 @@ import torch
 import numpy as np
 from torchvision import transforms
 
-from models.region_diffusion import RegionDiffusion
-from models.region_diffusion_sdxl import RegionDiffusionXL
+from rt_models.region_diffusion import RegionDiffusion
+from rt_models.region_diffusion_sdxl import RegionDiffusionXL
 from utils.attention_utils import get_token_maps
-from utils.richtext_utils import seed_everything, parse_json, get_region_diffusion_input,\
+from utils.richtext_utils import seed_everything, parse_json, get_region_diffusion_input_modified,\
     get_attention_control_input, get_gradient_guidance_input
 
 
@@ -33,18 +33,17 @@ def main(args, param):
 
     # parse json to span attributes
     # getting target colors
-    base_text_prompt, style_text_prompts, footnote_text_prompts, footnote_target_tokens,\
-        color_text_prompts, color_names, color_rgbs, size_text_prompts_and_sizes, use_grad_guidance = parse_json(
-            param['text_input'])
+    base_text_prompt, color_text_prompts, \
+        color_names, color_rgbs, size_text_prompts_and_sizes, \
+            use_grad_guidance = parse_json(param['text_input'])
         
     # print(f"INPUT COLOR TEXT PROMPTS: {color_text_prompts}")
     # print(f"INPUT COLOR NAMES: {color_names}")
     # print(f"INPUT COLOR RGB CODES: {color_rgbs}")
 
     # create control input for region diffusion
-    region_text_prompts, region_target_token_ids, base_tokens = get_region_diffusion_input(
-        model, base_text_prompt, style_text_prompts, footnote_text_prompts,
-        footnote_target_tokens, color_text_prompts, color_names)
+    region_text_prompts, region_target_token_ids, base_tokens = get_region_diffusion_input_modified(
+        model, base_text_prompt, color_text_prompts, color_names)
 
     # create control input for cross attention
     text_format_dict = get_attention_control_input(
@@ -89,6 +88,11 @@ def main(args, param):
     seed_everything(seed)
     
     # plain_img is a PIL.image object. so if i simply let lmd output a PIL.image, and hten add this section...
+    
+    
+    
+    
+    
     
     """this is the section LMD comes in"""
      

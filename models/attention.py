@@ -17,11 +17,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-<<<<<<< HEAD
-from diffusers.utils.torch_utils import maybe_allow_in_graph
-=======
 from diffusers.utils import maybe_allow_in_graph
->>>>>>> 8413045 (use VAE to decode)
 from .attention_processor import Attention
 from diffusers.models.embeddings import CombinedTimestepLabelEmbeddings
 

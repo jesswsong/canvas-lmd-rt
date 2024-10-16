@@ -56,7 +56,7 @@ if __name__ == "__main__":
     
     # Read canvas input
     parsed_input = parse_input_from_canvas('/mnt/hd1/jwsong/dsc180/canvas-lmd-rt/canvas_input/data.json')#parse_input_with_negative(text=resp, no_input=args.auto_query)
-    # parsed_input = parse_input_with_negative(text=resp, no_input=args.auto_query)
+    
     if parsed_input is None:
         raise ValueError("Invalid input")
     raw_gen_boxes, bg_prompt, neg_prompt = parsed_input 

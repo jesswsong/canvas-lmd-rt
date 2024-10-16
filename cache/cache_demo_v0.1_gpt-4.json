@@ -1,6 +1,7 @@
 {
-
     "A golden apple in a library": [
-        "[('golden apple', [199, 205, 132, 87])]\nBackground prompt: library\nNegative prompt: "
+        "[('golden apple', [199, 205, 132, 87])]\nBackground prompt: library\nNegative prompt: ",
+        "[('golden apple', [199, 205, 331, 292])]\nBackground prompt: library\nNegative prompt: ",
+        "[('golden apple', [199, 205, 331, 292])]\nBackground prompt: library\nNegative prompt: "
     ]
 }
