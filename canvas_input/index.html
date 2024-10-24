@@ -5,29 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Draw and Label Rectangles</title>
     <link rel="stylesheet" href="style.css"> <!-- Optional for styling -->
-<<<<<<< HEAD
-</head>
-<body>
-    <canvas id="canvas" width="512" height="512" style="border:1px solid #000;"></canvas>
-    <label for="labelInput">Label: </label>
-    <input type="text" id="labelInput">
-    <!-- Include the jscolor library -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jscolor/2.5.2/jscolor.min.js"></script>
-
-    <!-- Create a text input element with the data-jscolor attribute -->
-    <input class="jscolor" id="colorvalue" data-jscolor="{format:'hex'}">
-
-    <label for="background" style="display: inline-block;">Background:</label>
-    <input type="text" id="background" style="display: inline-block;">
-
-    <label for="negative" style="display: inline-block;">Negative:</label>
-    <input type="text" id="negative" style="display: inline-block;">
-
-
-    <button id="saveBtn">Save Input</button>
-
-    <script src="script.js"></script>
-=======
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -67,7 +44,7 @@
         </div>
     </div>
 
-    <label for="background" style="display: inline-block;">Background:</label>
+    <label for="full" style="display: inline-block;">Full prompt:</label>
     <input type="text" id="background" >
     
     <button id="saveBtn">Save Input</button>
@@ -85,6 +62,5 @@
     <p>Run the folowing command in terminal to generate the images!</p>
     <code>python generate.py --prompt-type demo --model gpt-4 --save-suffix "gpt-4" --repeats 5 --frozen_step_ratio 0.75 --regenerate 1 --force_run_ind 0 --run-model lmd_plus --no-scale-boxes-default --template_version v0.1</code>
 
->>>>>>> 8413045 (use VAE to decode)
 </body>
 </html>

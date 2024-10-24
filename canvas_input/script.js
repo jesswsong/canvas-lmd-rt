@@ -3,10 +3,7 @@ let ctx = canvas.getContext('2d');
 let rect = {};
 let drag = false;
 let rectangles = []; // Array to store rectangles
-<<<<<<< HEAD
-=======
 let bbox_width = 4;
->>>>>>> 8413045 (use VAE to decode)
 
 function init() {
     canvas.addEventListener('mousedown', mouseDown, false);
@@ -56,10 +53,7 @@ function drawAll() {
     ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas
     rectangles.forEach(function(r) { // Loop through all rectangles and draw them
         ctx.strokeStyle = r.color;
-<<<<<<< HEAD
-=======
         ctx.lineWidth = bbox_width;
->>>>>>> 8413045 (use VAE to decode)
         ctx.strokeRect(r.startX, r.startY, r.w, r.h);
     });
 }

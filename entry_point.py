@@ -24,7 +24,7 @@ else:
     
     
 def entry_point(args, param):
-    visualize_cache_hit = args.visualize_cache_hi
+    # visualize_cache_hit = args.visualize_cache_hi
     template_version = args.template_version
     
     # Visualize bounding boxes
@@ -42,7 +42,7 @@ def entry_point(args, param):
     """
     Get Prompt
     """
-    full_prompt = args.prompt # this used to be prompt.get_prompts in LMD
+    full_prompt = args.full_prompt # this used to be prompt.get_prompts in LMD
     parsed_input = parse_input_from_canvas(args.ui_input_loc)
     
     if parsed_input is None:
@@ -156,16 +156,17 @@ def entry_point(args, param):
 
 if __name__ == '__main__':
     parser1 = argparse.ArgumentParser()
+    
     # parser.add_argument('--run_dir', type=str, default='results/')
-    # parser.add_argument('--height', type=int, default=None)
-    # parser.add_argument('--width', type=int, default=None)
-    # parser.add_argument('--seed', type=int, default=6)
-    # parser.add_argument('--sample_steps', type=int, default=41)
+    parser1.add_argument('--height', type=int, default=None)
+    parser1.add_argument('--width', type=int, default=None)
+    parser1.add_argument('--seed', type=int, default=6)
+    parser1.add_argument('--sample_steps', type=int, default=41)
     # parser.add_argument('--rich_text_json', type=str,
     #                     default='{"ops":[{"insert":"A close-up 4k dslr photo of a "},{"attributes":{"link":"A cat wearing sunglasses and a bandana around its neck."},"insert":"cat"},{"insert":" riding a scooter. There are palm trees in the background."}]}')
-    # parser.add_argument('--negative_prompt', type=str, default='')
+    parser1.add_argument('--negative_prompt', type=str, default='')
     # parser.add_argument('--model', type=str, default='SD', choices=['SD', 'SDXL'])
-    # parser.add_argument('--guidance_weight', type=float, default=8.5)
+    parser1.add_argument('--guidance_weight', type=float, default=8.5)
     # parser.add_argument('--color_guidance_weight', type=float, default=0.5)
     # parser.add_argument('--inject_selfattn', type=float, default=0.)
     # parser.add_argument('--segment_threshold', type=float, default=0.3)
@@ -181,15 +182,16 @@ if __name__ == '__main__':
     parser1.add_argument("--no-visualize", action='store_true', help='No visualizations')
     parser1.add_argument("--visualize-cache-hit", action='store_true', help='Save boxes for cache hit')
     
-    
     parser1.add_argument("--ui-input-loc", type=str, required=True, help="Path to the input JSON file.")
     parser1.add_argument("--full-prompt", type=str, required=True, help="Full prompt string to pass.")
+    
+    
 
     args1 = parser1.parse_args()
     default_resolution = 512 if args1.model == 'SD' else 1024
     
-    rich_text_json_temp = '{"ops":[{"insert":"a Gothic "},{"attributes":{"color":"#fd6c9e"},"insert":"church"},{"insert":" in a sunset with a beautiful landscape in the background."}]}'
-    print(rich_text_json_temp)
+    # rich_text_json_temp = '{"ops":[{"insert":"a Gothic "},{"attributes":{"color":"#fd6c9e"},"insert":"church"},{"insert":" in a sunset with a beautiful landscape in the background."}]}'
+    # print(rich_text_json_temp)
     param = {
         'text_input': json.loads(rich_text_json_temp),
         'height': args1.height if args1.height is not None else default_resolution,
