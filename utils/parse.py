@@ -147,10 +147,11 @@ def parse_input_from_canvas(fp, no_input=False):
         
     bg_prompt = data['background']
     neg_prompt = data['negative']
+    full_prompt = data['prompt']
 
     raw_gen_boxes = []
     for item in data['rectangles']:
-        raw_gen_boxes.append((item['label'], [item['startX'], item['startY'], item['endX'], item['endY']]))
+        raw_gen_boxes.append((item['label'], item['color'], [item['startX'], item['startY'], item['width'], item['height']]))
        
     ### Process background prompt
     # instead of splitting (filtering, we go straight to asking)
@@ -183,7 +184,7 @@ def parse_input_from_canvas(fp, no_input=False):
     if neg_prompt == "None":
         neg_prompt = ""
     
-    return raw_gen_boxes, bg_prompt, neg_prompt
+    return raw_gen_boxes, bg_prompt, neg_prompt, full_prompt
 
 
 def filter_boxes(gen_boxes, scale_boxes=True, ignore_background=True, max_scale=3):
@@ -202,7 +203,7 @@ def filter_boxes(gen_boxes, scale_boxes=True, ignore_background=True, max_scale=
             name, [bbox_x, bbox_y, bbox_w, bbox_h] = gen_box['name'], gen_box['bounding_box']
             box_dict_format = True
         else:
-            if not gen_box[1]:
+            if not gen_box[2]:
                 continue
             name, [bbox_x, bbox_y, bbox_w, bbox_h] = gen_box
         if bbox_w <= 0 or bbox_h <= 0:

@@ -190,8 +190,8 @@ if __name__ == '__main__':
     args1 = parser1.parse_args()
     default_resolution = 512 if args1.model == 'SD' else 1024
     
-    # rich_text_json_temp = '{"ops":[{"insert":"a Gothic "},{"attributes":{"color":"#fd6c9e"},"insert":"church"},{"insert":" in a sunset with a beautiful landscape in the background."}]}'
-    # print(rich_text_json_temp)
+    rich_text_json_temp = '{"ops":[{"insert":"a Gothic "},{"attributes":{"color":"#fd6c9e"},"insert":"church"},{"insert":" in a sunset with a beautiful landscape in the background."}]}'
+    print(rich_text_json_temp)
     param = {
         'text_input': json.loads(rich_text_json_temp),
         'height': args1.height if args1.height is not None else default_resolution,

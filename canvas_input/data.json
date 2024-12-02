@@ -1,14 +1,31 @@
 {
     "rectangles": [
         {
-            "label": "golden apple",
-            "startX": 199,
-            "startY": 205,
-            "endX": 331,
-            "endY": 292,
-            "color": "#FFA809"
+            "label": "sdfkj",
+            "startX": 94,
+            "startY": 219,
+            "width": 0,
+            "height": 0,
+            "color": "#38DFFF"
+        },
+        {
+            "label": "sdfkj",
+            "startX": 94,
+            "startY": 219,
+            "width": 164,
+            "height": 106,
+            "color": "#38DFFF"
+        },
+        {
+            "label": "sdfkj",
+            "startX": 267,
+            "startY": 79,
+            "width": 237,
+            "height": 85,
+            "color": "#38DFFF"
         }
     ],
-    "background": "library",
-    "negative": ""
+    "background": "skdjf",
+    "negative": "sdkfj",
+    "prompt": "aslkdjfls"
 }

@@ -93,8 +93,9 @@ function saveRectangle() {
 
     const bkgInput = document.getElementById("background").value;
     const negInput = document.getElementById("negative").value;
+    const fullPrompt = document.getElementById("full_prompt").value;
 
-    if (!bkgInput) {
+    if (!colorvalue || !labelInput){
         alert('Please enter both a color and a label before drawing.');
         return; // Exit the function if either input is empty
     }
@@ -105,8 +106,8 @@ function saveRectangle() {
             label: rect.label,
             startX: rect.startX,
             startY: rect.startY,
-            endX: rect.startX + rect.w,
-            endY: rect.startY + rect.h,
+            width: rect.w,
+            height: rect.h,
             color: rect.color
         };
         allRectData.push(rectData)
@@ -116,6 +117,7 @@ function saveRectangle() {
     outputData['rectangles'] = allRectData
     outputData['background'] = bkgInput
     outputData['negative'] = negInput
+    outputData['prompt'] = fullPrompt
 
     // console.log(JSON.stringify(allRectData));
     saveJsonToFile(outputData, "data.json");
