@@ -203,8 +203,6 @@ def filter_boxes(gen_boxes, scale_boxes=True, ignore_background=True, max_scale=
             name, [bbox_x, bbox_y, bbox_w, bbox_h] = gen_box['name'], gen_box['bounding_box']
             box_dict_format = True
         else:
-            if not gen_box[2]:
-                continue
             name, [bbox_x, bbox_y, bbox_w, bbox_h] = gen_box
         if bbox_w <= 0 or bbox_h <= 0:
             # Empty boxes
@@ -379,7 +377,9 @@ def convert_spec(spec, height, width, include_counts=True, verbose=False):
     prompt, gen_boxes, bg_prompt = spec['prompt'], spec['gen_boxes'], spec['bg_prompt']
     
     # This ensures the same objects appear together because flattened `overall_phrases_bboxes` should EXACTLY correspond to `so_prompt_phrase_box_list`. 
+    # TODO: this is a dictionary... object 0 has name..., 
     gen_boxes = sorted(gen_boxes, key=lambda gen_box: gen_box[0])
+    # ("deer", [100, 0, 1, 2])
     
     gen_boxes = [(name, convert_box(box, height=height, width=width)) for name, box in gen_boxes]
     

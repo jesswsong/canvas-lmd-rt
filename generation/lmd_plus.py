@@ -195,11 +195,7 @@ def run(
     bg_seed=1,
     overall_prompt_override="",
     fg_seed_start=20,
-<<<<<<< HEAD
     frozen_step_ratio=0.5,
-=======
-    frozen_step_ratio=1,
->>>>>>> 8413045 (use VAE to decode)
     num_inference_steps=50,
     loss_scale=5,
     loss_threshold=5.0,

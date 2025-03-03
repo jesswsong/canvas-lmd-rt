@@ -1,31 +1,15 @@
 {
     "rectangles": [
         {
-            "label": "sdfkj",
-            "startX": 94,
-            "startY": 219,
-            "width": 0,
-            "height": 0,
-            "color": "#38DFFF"
-        },
-        {
-            "label": "sdfkj",
-            "startX": 94,
-            "startY": 219,
-            "width": 164,
-            "height": 106,
-            "color": "#38DFFF"
-        },
-        {
-            "label": "sdfkj",
-            "startX": 267,
-            "startY": 79,
-            "width": 237,
-            "height": 85,
-            "color": "#38DFFF"
+            "label": "church",
+            "startX": 199,
+            "startY": 205,
+            "width": 100,
+            "height": 100,
+            "color": "#fd6c9e"
         }
     ],
-    "background": "skdjf",
-    "negative": "sdkfj",
-    "prompt": "aslkdjfls"
+    "background": "in a sunset with a beautiful landscape",
+    "negative": "without bananas",
+    "prompt": "a Gothic church in a sunset with a beautiful landscape in the background."
 }

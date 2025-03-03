@@ -1,8 +1,5 @@
 {
-    "": [
-        "[('fdf', '#24D4FF', [215, 274, 215, 274]), ('fdf', '#24D4FF', [93, 194, 173, 352]), ('fdf', '#24D4FF', [295, 111, 463, 230])]\nBackground prompt: alksjdflkjsdf\nNegative prompt: "
-    ],
-    "aslkdjfls": [
-        "[('sdfkj', '#38DFFF', [94, 219, 0, 0]), ('sdfkj', '#38DFFF', [94, 219, 164, 106]), ('sdfkj', '#38DFFF', [267, 79, 237, 85])]\nBackground prompt: skdjf\nNegative prompt: sdkfj"
+    "a Gothic church in a sunset with a beautiful landscape in the background.": [
+        "[('church', '#fd6c9e', [199, 205, 100, 100])]\nBackground prompt: in a sunset with a beautiful landscape\nNegative prompt: without bananas"
     ]
 }

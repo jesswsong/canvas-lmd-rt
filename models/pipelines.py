@@ -48,7 +48,7 @@ def latent_backward_guidance(model_dict, scheduler, unet, cond_embeddings, index
             
             # CHANGE MADE: added decode function
             # compute_ca_lossv3(saved_attn, bboxes, object_positions, guidance_attn_keys, decode_func,
-            loss = guidance.compute_ca_lossv3(saved_attn=saved_attn, bboxes=bboxes, object_positions=object_positions, guidance_attn_keys=guidance_attn_keys, decode_func=decode, vae=model_dict.vae, ref_ca_saved_attns=ref_ca_saved_attns, index=index, verbose=verbose, **kwargs) * loss_scale
+            loss = guidance.compute_ca_lossv3(saved_attn=saved_attn, bboxes=bboxes, object_positions=object_positions, guidance_attn_keys=guidance_attn_keys, ref_ca_saved_attns=ref_ca_saved_attns, index=index, verbose=verbose, **kwargs) * loss_scale
 
             if torch.isnan(loss):
                 print("**Loss is NaN**")
@@ -419,7 +419,12 @@ def generate_gligen(model_dict, latents, input_embeddings, num_inference_steps, 
         
         if semantic_guidance_bboxes and semantic_guidance:
             with torch.enable_grad():
-                latents, loss = latent_backward_guidance(scheduler, unet, cond_embeddings, index, semantic_guidance_bboxes, semantic_guidance_object_positions, t, latents, loss, cross_attention_kwargs=guidance_cross_attention_kwargs, **semantic_guidance_kwargs)
+                # latents, loss = latent_backward_guidance(scheduler, unet, cond_embeddings, index, semantic_guidance_bboxes, semantic_guidance_object_positions, t, latents, loss, cross_attention_kwargs=guidance_cross_attention_kwargs, **semantic_guidance_kwargs)
+                latents, loss = latent_backward_guidance(
+                    model_dict, scheduler, unet, cond_embeddings, index, 
+                    semantic_guidance_bboxes, semantic_guidance_object_positions, t, latents, loss, 
+                    cross_attention_kwargs=guidance_cross_attention_kwargs, **semantic_guidance_kwargs)
+                
         # expand the latents if we are doing classifier-free guidance to avoid doing two forward passes.
         latent_model_input = torch.cat([latents] * 2)
 

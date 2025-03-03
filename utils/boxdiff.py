@@ -193,10 +193,7 @@ def latent_backward_guidance_boxdiff(scheduler, unet, cond_embeddings, index, bb
     latent_scale: this scales the step size for update (scale_factor in boxdiff).
     """
 
-<<<<<<< HEAD
-=======
     print("here at boxdiff")
->>>>>>> 8413045 (use VAE to decode)
     if index < max_index_step:
         saved_attn = {}
         full_cross_attention_kwargs = {
