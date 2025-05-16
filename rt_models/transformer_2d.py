@@ -24,7 +24,7 @@ from diffusers.utils import BaseOutput, deprecate
 from diffusers.models.embeddings import PatchEmbed
 from diffusers.models.modeling_utils import ModelMixin
 
-from models.attention import BasicTransformerBlock
+from rt_models.attention import BasicTransformerBlock
 
 @dataclass
 class Transformer2DModelOutput(BaseOutput):

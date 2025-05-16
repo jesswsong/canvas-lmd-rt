@@ -21,7 +21,7 @@ from diffusers.utils import maybe_allow_in_graph
 from diffusers.models.activations import get_activation
 from diffusers.models.embeddings import CombinedTimestepLabelEmbeddings
 
-from models.attention_processor import Attention
+from rt_models.attention_processor import Attention
 
 @maybe_allow_in_graph
 class BasicTransformerBlock(nn.Module):

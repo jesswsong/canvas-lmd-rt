@@ -36,9 +36,9 @@ from diffusers.models.embeddings import (
 )
 from diffusers.models.modeling_utils import ModelMixin
 
-from models.attention_processor import AttentionProcessor, AttnProcessor
+from rt_models.attention_processor import AttentionProcessor, AttnProcessor
 
-from models.unet_2d_blocks import (
+from rt_models.unet_2d_blocks import (
     CrossAttnDownBlock2D,
     CrossAttnUpBlock2D,
     DownBlock2D,

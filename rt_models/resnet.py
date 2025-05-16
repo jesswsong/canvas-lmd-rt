@@ -22,7 +22,7 @@ import torch.nn.functional as F
 
 from diffusers.models.activations import get_activation
 from diffusers.models.attention import AdaGroupNorm
-from models.attention_processor import SpatialNorm
+from rt_models.attention_processor import SpatialNorm
 
 
 class Upsample1D(nn.Module):

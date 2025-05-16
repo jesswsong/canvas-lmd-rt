@@ -19,6 +19,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils.checkpoint
 
+import torch
+import collections
+from functools import partial
+
 from diffusers.configuration_utils import ConfigMixin, register_to_config
 from diffusers.loaders import UNet2DConditionLoadersMixin
 from diffusers.utils import BaseOutput, logging
@@ -978,3 +982,47 @@ class UNet2DConditionModel(ModelMixin, ConfigMixin, UNet2DConditionLoadersMixin)
             return (sample,)
 
         return UNet2DConditionOutput(sample=sample, cross_attention_probs_down=cross_attention_probs_down, cross_attention_probs_mid=cross_attention_probs_mid, cross_attention_probs_up=cross_attention_probs_up)
+
+    
+
+    def register_tokenmap_hooks(self):
+        """Registers hooks to store self-attention and cross-attention maps during inference."""
+        self.forward_hooks = []  # Store hook references
+
+        def save_activations(selfattn_maps, crossattn_maps, n_maps, name, module, inp, out):
+            """Captures attention maps during forward passes."""
+            if name in n_maps:
+                n_maps[name] += 1
+            else:
+                n_maps[name] = 1
+
+            if 'attn2' in name:  # Cross-attention
+                if name in crossattn_maps:
+                    crossattn_maps[name] += out[1][0].detach().cpu()[1:2]
+                else:
+                    crossattn_maps[name] = out[1][0].detach().cpu()[1:2]
+            else:  # Self-attention
+                if name in selfattn_maps:
+                    selfattn_maps[name] += out[1][0].detach().cpu()[1:2]
+                else:
+                    selfattn_maps[name] = out[1][0].detach().cpu()[1:2]
+
+        self.selfattn_maps = collections.defaultdict(list)
+        self.crossattn_maps = collections.defaultdict(list)
+        self.n_maps = collections.defaultdict(int)
+
+        for name, module in self.named_modules():
+            if 'attn' in name:
+                hook = module.register_forward_hook(
+                    partial(save_activations, self.selfattn_maps, self.crossattn_maps, self.n_maps, name)
+                )
+                self.forward_hooks.append(hook)  # Store hooks for later removal
+
+    def remove_tokenmap_hooks(self):
+        """Removes registered forward hooks and clears stored attention maps."""
+        for hook in getattr(self, "forward_hooks", []):
+            hook.remove()
+        self.forward_hooks = []
+        self.selfattn_maps = None
+        self.crossattn_maps = None
+        self.n_maps = None

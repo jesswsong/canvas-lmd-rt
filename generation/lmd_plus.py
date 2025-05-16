@@ -1,3 +1,9 @@
+import os
+import json
+import time
+import argparse
+import imageio
+
 import torch
 import models
 import utils
@@ -110,7 +116,9 @@ def generate_single_object_with_box(
         **kwargs,
     )
     # `saved_cross_attn_keys` kwargs may have duplicates
-
+    
+    # Remove hooks to free memory
+    # model_dict.unet.remove_tokenmap_hooks()
     utils.free_memory()
 
     single_object_pil_image_box_ann = single_object_pil_images_box_ann[0]
@@ -492,6 +500,9 @@ def run(
 
         # Foreground should be frozen
         frozen_mask = foreground_indices != 0
+        
+        # Ensure hooks are registered at the start
+        model_dict.unet.register_tokenmap_hooks()
 
         _, images = pipelines.generate_gligen(
             model_dict,
@@ -514,7 +525,25 @@ def run(
             f"Generation with spatial guidance from input latents and first {frozen_steps} steps frozen (directly from the composed latents input)"
         )
         print("Generation from composed latents (with semantic guidance)")
+        
+        # Retrieve self-attention and cross-attention maps
+        self_attn_maps = model_dict.unet.selfattn_maps
+        cross_attn_maps = model_dict.unet.crossattn_maps
+        n_maps = model_dict.unet.n_maps
+
+        print("Self-attention maps keys:", self_attn_maps.keys())
+        print("Cross-attention maps keys:", cross_attn_maps.keys())
+        print("Number of attention activations:", n_maps)
+
+        # Remove hooks to free memory
+        model_dict.unet.remove_tokenmap_hooks()
 
     utils.free_memory()
 
-    return EasyDict(image=images[0], so_img_list=so_img_list)
+    return EasyDict(
+        image=images[0], 
+        so_img_list=so_img_list, 
+        self_attn_maps=self_attn_maps, 
+        cross_attn_maps=cross_attn_maps, 
+        n_maps=n_maps
+    )

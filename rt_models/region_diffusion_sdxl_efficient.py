@@ -33,7 +33,7 @@ import collections
 from functools import partial
 from diffusers.pipelines.stable_diffusion_xl import StableDiffusionXLPipelineOutput
 
-from models.unet_2d_condition import UNet2DConditionModel
+from rt_models.unet_2d_condition import UNet2DConditionModel
 from utils.attention_utils import CrossAttentionLayers_XL
 
 logger = logging.get_logger(__name__)  # pylint: disable=invalid-name

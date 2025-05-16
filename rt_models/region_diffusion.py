@@ -5,7 +5,7 @@ import torch.nn as nn
 from functools import partial
 from transformers import CLIPTextModel, CLIPTokenizer, logging
 from diffusers import AutoencoderKL, PNDMScheduler, EulerDiscreteScheduler, DPMSolverMultistepScheduler
-from models.unet_2d_condition import UNet2DConditionModel
+from rt_models.unet_2d_condition import UNet2DConditionModel
 from utils.attention_utils import CrossAttentionLayers, SelfAttentionLayers
 
 # suppress partial model loading warning

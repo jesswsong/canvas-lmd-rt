@@ -1,6 +1,5 @@
 
 
-
 # LMD imports
 import os
 from prompt import get_prompts, prompt_types, template_versions
@@ -20,8 +19,17 @@ import bdb
 import traceback
 import time
 
+
 # RT imports
 import json
+from PIL import Image
+import numpy as np
+from rt_models.region_diffusion import RegionDiffusion
+from rt_models.region_diffusion_sdxl import RegionDiffusionXL
+from utils.attention_utils import get_token_maps
+from utils.richtext_utils import seed_everything, get_attention_control_input, get_gradient_guidance_input
+from utils.rt_utils import *
+
 
 # This only applies to visualization in this file.
 scale_boxes = False
@@ -29,16 +37,15 @@ if scale_boxes:
     print("Scaling the bounding box to fit the scene")
 else:
     print("Not scaling the bounding box to fit the scene")
-    
-    
+
+
 def entry_point(args):
     our_models = ["lmd", "lmd_plus"]
-    gligen_models = ["gligen", "lmd_plus"]
-    
-    if args.run_model in gligen_models:
+
+    if args.run_model == "lmd_plus":
         models.sd_key = "gligen/diffusers-generation-text-box"
         models.sd_version = "sdv1.4"
-        
+
     else:
         models.sd_key = "runwayml/stable-diffusion-v1-5"
         models.sd_version = "sdv1.5"
@@ -47,14 +54,14 @@ def entry_point(args):
     models.model_dict = models.load_sd(
         key=models.sd_key,
         use_fp16=False,
-        scheduler_cls=diffusers.schedulers.__dict__[args.scheduler] if args.scheduler else None,
+        scheduler_cls=diffusers.schedulers.__dict__[
+            args.scheduler] if args.scheduler else None,
     )
 
     if args.run_model in our_models:
         sam_model_dict = sam.load_sam()
         models.model_dict.update(sam_model_dict)
 
-    
     if args.run_model == "lmd":
         import generation.lmd as generation
     elif args.run_model == "lmd_plus":
@@ -65,8 +72,6 @@ def entry_point(args):
                 "**You are running SD without `ignore_negative_prompt`. This means that it still uses part of the LLM output and is not a real SD baseline that takes only the prompt."
             )
         import generation.stable_diffusion_generate as generation
-    elif args.run_model == "gligen":
-        import generation.gligen as generation
     else:
         raise ValueError(f"Unknown model type: {args.run_model}")
 
@@ -74,7 +79,7 @@ def entry_point(args):
     version = generation.version
     assert version == args.run_model, f"{version} != {args.run_model}"
     run = generation.run
-    
+
     # set visualizations to no-op in batch generation
     for k in vis.__dict__.keys():
         if k.startswith("visualize"):
@@ -91,7 +96,6 @@ def entry_point(args):
     cache.cache_path = f'cache/cache_{args.prompt_type.replace("lmd_", "")}{"_" + template_version if template_version != "v5" else ""}_{model}.json'
     print(f"Loading LLM responses from cache {cache.cache_path}")
     cache.init_cache(allow_nonexist=True)
-
 
     save_suffix = ("_" + args.save_suffix) if args.save_suffix else ""
     repeats = args.repeats
@@ -145,8 +149,7 @@ def entry_point(args):
     if args.regenerate > 1:
         # Need to fix the ind
         assert args.skip_first_prompts == 0
-        
-        
+
     # full_prompt = args.full_prompt # this used to be prompt.get_prompts in LMD
 #     parsed_input = parse_input_from_canvas(args.ui_input_loc)
 
@@ -178,17 +181,17 @@ def entry_point(args):
             parsed_input = parse_input_from_canvas(args.ui_input_loc)
             if parsed_input is None:
                 raise ValueError("Invalid input")
-            raw_gen_boxes, bg_prompt, neg_prompt, prompt = parsed_input 
+            raw_gen_boxes, bg_prompt, neg_prompt, prompt = parsed_input
             # Load canvas input into bounding boxes
-            # gen_boxes = [{'name': box[0], 'bounding_box': box[2]} for box in raw_gen_boxes] 
-            #TODO: here, box[1] is the colors associated with each box. it's not used in LMD yet but will be useful in the future as we integrate color in rt
-            
+            # gen_boxes = [{'name': box[0], 'bounding_box': box[2]} for box in raw_gen_boxes]
+            # TODO: here, box[1] is the colors associated with each box. it's not used in LMD yet but will be useful in the future as we integrate color in rt
+
             gen_boxes = [(box[0], box[2]) for box in raw_gen_boxes]
             # this format: [('deer', [100, 100, 300, 300])]
             gen_boxes = filter_boxes(gen_boxes, scale_boxes=scale_boxes)
 
             print(gen_boxes)
-            
+
             spec = {
                 "prompt": prompt,
                 "gen_boxes": gen_boxes,
@@ -243,45 +246,21 @@ def entry_point(args):
                         extra_neg_prompt=neg_prompt,
                         **run_kwargs,
                     )
-                elif args.run_model == "multidiffusion":
-                    output = run(
-                        gen_boxes=gen_boxes,
-                        bg_prompt=bg_prompt,
-                        original_ind_base=original_ind_base + ind_offset,
-                        bootstrapping=args.multidiffusion_bootstrapping,
-                        extra_neg_prompt=neg_prompt,
-                        **run_kwargs,
-                    )
-                elif args.run_model == "backward_guidance":
-                    output = run(
-                        spec=spec,
-                        bg_seed=original_ind_base + ind_offset,
-                        **run_kwargs,
-                    )
-                elif args.run_model == "boxdiff":
-                    output = run(
-                        spec=spec,
-                        bg_seed=original_ind_base + ind_offset,
-                        **run_kwargs,
-                    )
-                elif args.run_model == "gligen":
-                    output = run(
-                        spec=spec,
-                        bg_seed=original_ind_base + ind_offset,
-                        **run_kwargs,
-                    )
 
-                print(f"OUTPUT TYPE: {type(output)}")
-                output = output.image
-                print(f"OUTPUT TYPE: {output.shape}")
+                plain_img = output.image
+                self_attn_maps = output.self_attn_maps
+                cross_attn_maps = output.cross_attn_maps 
+                n_maps = output.n_maps
 
                 if args.sdxl:
-                    output = sdxl.refine(image=output, spec=spec, refine_seed=original_ind_base + ind_offset + LARGE_CONSTANT4, refinement_step_ratio=args.sdxl_step_ratio)
+                    plain_img = sdxl.refine(image=plain_img, spec=spec, refine_seed=original_ind_base +
+                                         ind_offset + LARGE_CONSTANT4, refinement_step_ratio=args.sdxl_step_ratio)
 
                 print(f"OUTPUT TYPE: {type(output)}")
-                
+
                 # TODO: oinput output to rt
-                vis.display(output, "img", repeat_ind, save_ind_in_filename=False)
+                vis.display(output, "img", repeat_ind,
+                            save_ind_in_filename=False)
 
         except (KeyboardInterrupt, bdb.BdbQuit) as e:
                 print(e)
@@ -298,6 +277,87 @@ def entry_point(args):
             if args.no_continue_on_error:
                 raise e
 
+        # try placing LMD output in rich text as input
+        
+            
+    DIM_SCALAR = 8
+    seed = args.seed_offset
+    plain_img = Image.fromarray(plain_img)
+    
+    
+    if (args.run_model == 'SD') or (args.run_model == 'lmd'):
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        model = RegionDiffusion(device)
+    elif args.run_model == 'lmd_plus':
+        model = RegionDiffusionXL(
+            load_path="stabilityai/stable-diffusion-xl-base-1.0")
+    else:
+        raise NotImplementedError
+    
+    
+    # else:
+    #     model.reset_attention_maps()
+
+    use_grad_guidance = True
+    base_text_prompt = prompt
+    color_text_prompts, color_names, color_rgbs = parse_color_input(raw_gen_boxes)
+    
+    # create control input for region diffusion
+    region_text_prompts, region_target_token_ids, base_tokens = get_region_diffusion_input(
+        model, base_text_prompt, color_text_prompts, color_names)
+
+    # create control input for region guidance
+    text_format_dict, color_target_token_ids = get_gradient_guidance_input(
+        model, base_tokens, color_text_prompts, color_rgbs, color_guidance_weight=args.color_guidance_weight)
+
+    # TODO: figure out how these variables are all implemented
+    height, width = output.shape[0], output.shape[1]
+    # print(model.selfattn_maps) #this is currently empty
+    color_obj_masks = get_token_maps(self_attn_maps, cross_attn_maps, n_maps, args.run_dir,
+                                    height//DIM_SCALAR, width//DIM_SCALAR, color_target_token_ids[:-1], seed,
+                                    base_tokens, segment_threshold=args.segment_threshold, num_segments=args.num_segments)
+    color_obj_atten_all = torch.zeros_like(color_obj_masks[-1])
+    for obj_mask in color_obj_masks[:-1]:
+        color_obj_atten_all += obj_mask
+    color_obj_masks = [transforms.functional.resize(color_obj_mask, (height, width),
+                                                    interpolation=transforms.InterpolationMode.BICUBIC,
+                                                    antialias=True)
+                    for color_obj_mask in color_obj_masks]
+    text_format_dict['color_obj_atten'] = color_obj_masks
+    text_format_dict['color_obj_atten_all'] = color_obj_atten_all
+
+    seed_everything(seed)
+    model.masks = get_token_maps(self_attn_maps, cross_attn_maps, n_maps, args.run_dir,
+                                height//DIM_SCALAR, width//DIM_SCALAR, region_target_token_ids[:-1], seed,
+                                base_tokens, segment_threshold=args.segment_threshold, num_segments=args.num_segments)
+    model.remove_tokenmap_hooks()
+
+    # generate image from rich text
+    begin_time = time.time()
+    seed_everything(seed)
+    fn_style = os.path.join(args.run_dir, 'seed%d_rich.jpg' % (seed))
+    if args.model == 'SD':
+        # print(f"MODEL PROMPT_TO_IMG: {text_format_dict}")
+
+        rich_img = model.prompt_to_img(region_text_prompts, [negative_prompt],
+                                    height=height, width=width, num_inference_steps=args.color_sample_steps,
+                                    guidance_scale=args.color_guidance_weight, use_guidance=use_grad_guidance,
+                                    inject_selfattn=args.inject_selfattn, text_format_dict=text_format_dict,
+                                    inject_background=args.inject_background)
+        imageio.imwrite(fn_style, rich_img[0])
+    else:
+        # print(] for text_format_dict['target']])
+        print(f"MODEL SAMPLE: {text_format_dict}")
+        rich_img = model.sample(region_text_prompts, [negative_prompt],
+                                    height=height, width=width, num_inference_steps=args.color_sample_steps,
+                                    guidance_scale=args.color_guidance_weight, use_guidance=use_grad_guidance,
+                                    inject_selfattn=args.inject_selfattn, text_format_dict=text_format_dict,
+                                    inject_background=args.inject_background, run_rich_text=True)
+        rich_img.images[0].save(fn_style)
+    print('time lapses to generate image from rich text: %.4f' %
+        (time.time()-begin_time))
+        
+    
             
 
 
@@ -310,7 +370,7 @@ if __name__ == "__main__":
     parser.add_argument("--regenerate", default=1, type=int, help="Number of regenerations. Different from repeats, regeneration happens after everything is generated")
     parser.add_argument("--force_run_ind", default=None, type=int, help="If this is enabled, we use this run_ind and skips generated images. If this is not enabled, we create a new run after existing runs.")
     parser.add_argument("--skip_first_prompts", default=0, type=int, help="Skip the first prompts in generation (useful for parallel generation)")
-    parser.add_argument("--seed_offset", default=0, type=int, help="Offset to the seed (seed starts from this number)")
+    parser.add_argument("--seed_offset", default=6, type=int, help="Offset to the seed (seed starts from this number)")
     parser.add_argument("--num_prompts", default=None, type=int, help="The number of prompts to generate (useful for parallel generation)")
     parser.add_argument(
         "--run-model",
@@ -318,11 +378,7 @@ if __name__ == "__main__":
         choices=[
             "lmd",
             "lmd_plus",
-            "sd",
-            "multidiffusion",
-            "backward_guidance",
-            "boxdiff",
-            "gligen",
+            "sd"
         ],
     )
     parser.add_argument("--scheduler", default=None, type=str)
@@ -377,237 +433,17 @@ if __name__ == "__main__":
     for str_arg in str_args:
         parser.add_argument("--" + str_arg, default=None, type=str)
     parser.add_argument("--multidiffusion_bootstrapping", default=20, type=int)
-    parser.add_argument('--ui_input_loc', default="/mnt/hd1/jwsong/dsc180/canvas-lmd-rt/canvas_input/data.json",type=str)
-
+    parser.add_argument('--ui_input_loc', default="/mnt/hd1/jwsong/dsc180/canvas_lmd_rt/canvas_input/data.json",type=str)
+    parser.add_argument('--run_dir', type=str, default='results/')
+    parser.add_argument('--color_guidance_weight', type=float, default=0.5)
+    parser.add_argument('--segment_threshold', type=float, default=0.3)
+    parser.add_argument('--num_segments', type=int, default=9)
+    parser.add_argument('--color_sample_steps', type=int, default=41)
+    parser.add_argument('--inject_selfattn', type=float, default=0.)
+    parser.add_argument('--inject_background', type=float, default=0.)
+    
     args = parser.parse_args()
     entry_point(args)
-
-    
-# def entry_point(args, param):
-#     # visualize_cache_hit = args.visualize_cache_hi
-#     template_version = args.template_version
-    
-#     # Visualize bounding boxes
-#     parse.img_dir = f"img_generations/imgs_{args.prompt_type}_template{template_version}"
-#     if not args.no_visualize:
-#         os.makedirs(parse.img_dir, exist_ok=True)
-        
-#     # Create LMD cache directory
-#     cache.cache_path = f'cache/cache_{args.prompt_type.replace("lmd_", "")}{"_" + template_version if args.template_version != "v5" else ""}.json'
-#     print(f"Cache: {cache.cache_path}")
-#     os.makedirs(os.path.dirname(cache.cache_path), exist_ok=True)
-#     cache.cache_format = "json"
-#     cache.init_cache()
-    
-#     """
-#     Get Prompt
-#     """
-#     full_prompt = args.full_prompt # this used to be prompt.get_prompts in LMD
-#     parsed_input = parse_input_from_canvas(args.ui_input_loc)
-    
-#     if parsed_input is None:
-#         raise ValueError("Invalid input")
-#     raw_gen_boxes, bg_prompt, neg_prompt = parsed_input 
-
-
-#     """
-#     LMD processing
-#     """
-#     # Load canvas input into bounding boxes
-#     gen_boxes = [{'name': box[0], 'bounding_box': box[1]} for box in raw_gen_boxes]
-#     gen_boxes = filter_boxes(gen_boxes, scale_boxes=scale_boxes)
-    
-#     spec = {
-#         "prompt": full_prompt,
-#         "gen_boxes": gen_boxes,
-#         "bg_prompt": bg_prompt,
-#         "extra_neg_prompt": neg_prompt,
-#     }
-
-#     if not args.no_visualize:
-#         show_boxes(gen_boxes, bg_prompt=bg_prompt, neg_prompt=neg_prompt)
-#         plt.clf()
-#         print(f"Visualize masks at {parse.img_dir}")
-    
-#     # Save cache of this round
-#     response = f"{raw_gen_boxes}\n{bg_prompt_text}{bg_prompt}\n{neg_prompt_text}{neg_prompt}"
-#     cache.add_cache(full_prompt, response)
-
-#     # TODO：args.run_model
-#     # imported from line 130 of generate.py
-#     if args.run_model == "lmd":
-#         import generation.lmd as generation
-#     elif args.run_model == "lmd_plus":
-#         import generation.lmd_plus as generation
-#     elif args.run_model == "sd":
-#         if not args.ignore_negative_prompt:
-#             print(
-#                 "**You are running SD without `ignore_negative_prompt`. This means that it still uses part of the LLM output and is not a real SD baseline that takes only the prompt."
-#             )
-#         import generation.stable_diffusion_generate as generation
-#     elif args.run_model == "multidiffusion":
-#         import generation.multidiffusion as generation
-#     elif args.run_model == "backward_guidance":
-#         import generation.backward_guidance as generation
-#     elif args.run_model == "boxdiff":
-#         import generation.boxdiff as generation
-#     elif args.run_model == "gligen":
-#         import generation.gligen as generation
-#     else:
-#         raise ValueError(f"Unknown model type: {args.run_model}")
-
-#     # Sanity check: the version in the imported module should match the `run_model`
-#     version = generation.version
-#     assert version == args.run_model, f"{version} != {args.run_model}"
-#     run = generation.run
-#     if args.use_sdv2:
-#         version = f"{version}_sdv2"
-    
-#     # TODO: let LMD generate its plain image
-#     # from line 383 of generate.py
-#     prompt = full_prompt.strip().rstrip(".")
-#     output = run(prompt=prompt,
-#                  seed=original_ind_base + ind_offset,
-#                  extra_neg_prompt=neg_prompt,
-#                  **run_kwargs,
-#     )
-#     output = output.image
-#     vis.display(output, "img", repeat_ind, save_ind_in_filename=False)
-
-    
-#     """
-#     Run Generate
-#     """
-#     # parser = argparse.ArgumentParser()
-#     # parser.add_argument("--save-suffix", default=None, type=str)
-#     # parser.add_argument("--model", choices=model_names, required=True, help="LLM model to load the cache from")
-#     # parser.add_argument("--repeats", default=1, type=int, help="Number of samples for each prompt")
-#     # parser.add_argument("--regenerate", default=1, type=int, help="Number of regenerations. Different from repeats, regeneration happens after everything is generated")
-#     # parser.add_argument("--force_run_ind", default=None, type=int, help="If this is enabled, we use this run_ind and skips generated images. If this is not enabled, we create a new run after existing runs.")
-#     # parser.add_argument("--skip_first_prompts", default=0, type=int, help="Skip the first prompts in generation (useful for parallel generation)")
-#     # parser.add_argument("--seed_offset", default=0, type=int, help="Offset to the seed (seed starts from this number)")
-#     # parser.add_argument("--num_prompts", default=None, type=int, help="The number of prompts to generate (useful for parallel generation)")
-#     # parser.add_argument(
-#     #     "--run-model",
-#     #     default="lmd_plus",
-#     #     choices=[
-#     #         "lmd",
-#     #         "lmd_plus",
-#     #         "sd",
-#     #         "multidiffusion",
-#     #         "backward_guidance",
-#     #         "boxdiff",
-#     #         "gligen",
-#     #     ],
-#     # )
-#     # parser.add_argument("--scheduler", default=None, type=str)
-#     # parser.add_argument("--use-sdv2", action="store_true")
-#     # parser.add_argument("--ignore-bg-prompt", action="store_true", help="Ignore the background prompt (set background prompt to an empty str)")
-#     # parser.add_argument("--ignore-negative-prompt", action="store_true", help="Ignore the additional negative prompt generated by LLM")
-#     # parser.add_argument("--no-synthetic-prompt", action="store_true", help="Use the original prompt for overall generation rather than a synthetic prompt ([background prompt] with [objects])")
-#     # parser.add_argument("--no-scale-boxes-default", action="store_true", help="Do not scale the boxes to fill the scene")
-#     # parser.add_argument("--no-center-or-align", action="store_true", help="Do not perform per-box generation in the center and then align for overall generation")
-#     # parser.add_argument("--no-continue-on-error", action="store_true")
-#     # parser.add_argument("--prompt-type", choices=prompt_types, default="lmd")
-#     # parser.add_argument("--template_version", choices=template_versions, required=True)
-#     # parser.add_argument("--dry-run", action="store_true", help="skip the generation")
-
-#     # parser.add_argument("--sdxl", action="store_true", help="Enable sdxl.")
-#     # parser.add_argument("--sdxl-step-ratio", type=float, default=0.3, help="SDXL step ratio: the higher the stronger the refinement.")
-
-#     # float_args = [
-#     #     "frozen_step_ratio",
-#     #     "loss_threshold",
-#     #     "ref_ca_loss_weight",
-#     #     "fg_top_p",
-#     #     "bg_top_p",
-#     #     "overall_fg_top_p",
-#     #     "overall_bg_top_p",
-#     #     "fg_weight",
-#     #     "bg_weight",
-#     #     "overall_fg_weight",
-#     #     "overall_bg_weight",
-#     #     "overall_loss_threshold",
-#     #     "fg_blending_ratio",
-#     #     "mask_th_for_point",
-#     #     "so_floor_padding",
-#     # ]
-#     # for float_arg in float_args:
-#     #     parser.add_argument("--" + float_arg, default=None, type=float)
-
-#     # int_args = [
-#     #     "loss_scale",
-#     #     "max_iter",
-#     #     "max_index_step",
-#     #     "overall_max_iter",
-#     #     "overall_max_index_step",
-#     #     "overall_loss_scale",
-#     #     # Set to 0 to disable and set to 1 to enable
-#     #     "horizontal_shift_only",
-#     #     "so_horizontal_center_only",
-#     #     # Set to 0 to disable and set to 1 to enable (default: see the default value in each generation file):
-#     #     "use_autocast",
-#     #     # Set to 0 to disable and set to 1 to enable
-#     #     "use_ref_ca"
-#     # ]
-#     # for int_arg in int_args:
-#     #     parser.add_argument("--" + int_arg, default=None, type=int)
-#     # str_args = ["so_vertical_placement"]
-#     # for str_arg in str_args:
-#     #     parser.add_argument("--" + str_arg, default=None, type=str)
-#     # parser.add_argument("--multidiffusion_bootstrapping", default=20, type=int)
-
-#     # args = parser.parse_args()
-#     # generate_image(args)
-    
-        
-
-# if __name__ == '__main__':
-#     parser1 = argparse.ArgumentParser()
-    
-#     # parser.add_argument('--run_dir', type=str, default='results/')
-#     parser1.add_argument('--height', type=int, default=None)
-#     parser1.add_argument('--width', type=int, default=None)
-#     parser1.add_argument('--seed', type=int, default=6)
-#     parser1.add_argument('--sample_steps', type=int, default=41)
-#     # parser.add_argument('--rich_text_json', type=str,
-#     #                     default='{"ops":[{"insert":"A close-up 4k dslr photo of a "},{"attributes":{"link":"A cat wearing sunglasses and a bandana around its neck."},"insert":"cat"},{"insert":" riding a scooter. There are palm trees in the background."}]}')
-#     parser1.add_argument('--negative_prompt', type=str, default='')
-#     # parser.add_argument('--model', type=str, default='SD', choices=['SD', 'SDXL'])
-#     parser1.add_argument('--guidance_weight', type=float, default=8.5)
-#     # parser.add_argument('--color_guidance_weight', type=float, default=0.5)
-#     # parser.add_argument('--inject_selfattn', type=float, default=0.)
-#     # parser.add_argument('--segment_threshold', type=float, default=0.3)
-#     # parser.add_argument('--num_segments', type=int, default=9)
-#     # parser.add_argument('--inject_background', type=float, default=0.)
-    
-#     # lmd args
-#     parser1.add_argument("--prompt-type", choices=prompt_types, default="demo")
-#     parser1.add_argument("--model", choices=model_names, required=True)
-#     parser1.add_argument("--template_version", choices=template_versions, required=True)
-#     parser1.add_argument("--auto-query", action='store_true', help='Auto query using the API')
-#     parser1.add_argument("--always-save", action='store_true', help='Always save the layout without confirming')
-#     parser1.add_argument("--no-visualize", action='store_true', help='No visualizations')
-#     parser1.add_argument("--visualize-cache-hit", action='store_true', help='Save boxes for cache hit')
-    
-#     parser1.add_argument("--ui-input-loc", type=str, required=True, help="Path to the input JSON file.")
-#     parser1.add_argument("--full-prompt", type=str, required=True, help="Full prompt string to pass.")
     
     
-
-#     args1 = parser1.parse_args()
-#     default_resolution = 512 if args1.model == 'SD' else 1024
     
-#     rich_text_json_temp = '{"ops":[{"insert":"a Gothic "},{"attributes":{"color":"#fd6c9e"},"insert":"church"},{"insert":" in a sunset with a beautiful landscape in the background."}]}'
-#     print(rich_text_json_temp)
-#     param = {
-#         'text_input': json.loads(rich_text_json_temp),
-#         'height': args1.height if args1.height is not None else default_resolution,
-#         'width': args1.width if args1.width is not None else default_resolution,
-#         'guidance_weight': args1.guidance_weight,
-#         'steps': args1.sample_steps,
-#         'noise_index': args1.seed,
-#         'negative_prompt': args1.negative_prompt,
-#     }
-
-#     entry_point(args1, param)
